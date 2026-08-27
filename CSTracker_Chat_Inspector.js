@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CSTracker Chat Inspector
 // @namespace    https://github.com/tomini
-// @version      1.1.1
+// @version      1.1.2
 // @description  Tactical search, regex, copying, and exporting for CSTracker.gg chat logs.
 // @author       Tomini
 // @match        *://cstracker.gg/*
@@ -50,6 +50,7 @@
 
     let matchedNodes = [];
     let currentMatchIdx = -1;
+    let isFetching = false;
 
     GM_registerMenuCommand(`Toggle "Jump to Chat" Button`, () => {
         showScrollBtn = !showScrollBtn;
@@ -58,7 +59,6 @@
     });
 
     function findChatHeader() {
-        // v1.1 fix: Use the new dedicated section ID
         const section = document.getElementById('player-chat-section');
         return section ? section.querySelector('header') : null;
     }
@@ -124,19 +124,19 @@
         setInterval(() => {
             manageScrollButton();
             if (!window.location.href.includes('/players/')) return;
-            const headerElement = findChatHeader();
-            if (headerElement && !document.getElementById('csti-panel')) {
-                buildUI(headerElement);
+            const chatSection = document.getElementById('player-chat-section');
+            if (chatSection && !document.getElementById('csti-panel')) {
+                buildUI(chatSection);
                 injectQuickCopyButtons();
                 performSearch('', false, false);
             }
         }, 1000);
     }
 
-    function buildUI(headerElement) {
+    function buildUI(chatSection) {
         const panel = document.createElement('div');
         panel.id = 'csti-panel';
-        panel.style.cssText = 'background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(30, 41, 59, 0.8); color: #f1f5f9; padding: 16px; margin-top: 16px; margin-bottom: 16px; font-size: 14px;';
+        panel.style.cssText = 'background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(30, 41, 59, 0.8); color: #f1f5f9; padding: 16px; margin-top: 24px; margin-bottom: 24px; font-size: 14px;';
         
         panel.innerHTML = `
             <div style="margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3em; color: #64748b; font-family: ${monoFont};">
@@ -168,6 +168,7 @@
 
                 <button id="csti-btn-save" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.5); color: #e0f2fe; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Save</button>
                 <button id="csti-btn-clear" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); color: #cbd5e1; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Clear</button>
+                <button id="csti-btn-fetchall" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.5); color: #a7f3d0; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Fetch All Pages</button>
                 
                 <div style="position: relative;">
                     <button id="csti-btn-export-toggle" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); color: #cbd5e1; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;">
@@ -213,7 +214,8 @@
             </div>
         `;
         
-        headerElement.insertAdjacentElement('afterend', panel);
+        // v1.1.2 Fix: Insert the panel BEFORE the HTMX swapping zone so it survives pagination clicks
+        chatSection.insertAdjacentElement('beforebegin', panel);
         updatePresetDropdown();
         attachEventListeners();
     }
@@ -256,7 +258,6 @@
                 headerDiv.appendChild(copyBtn);
             }
 
-            // v1.1 fix: Use 'a.grid' instead of 'a.group'
             section.querySelectorAll('a.grid').forEach(msg => {
                 if (!msg.querySelector('.csti-msg-copy-btn')) {
                     msg.style.position = 'relative';
@@ -291,11 +292,77 @@
         });
     }
 
+    async function fetchAllPages() {
+        if (isFetching) return;
+        const fetchBtn = document.getElementById('csti-btn-fetchall');
+        const targetContainer = document.querySelector('#player-chat-section .overflow-y-auto');
+        
+        if (!targetContainer || !fetchBtn) return;
+
+        isFetching = true;
+        fetchBtn.style.opacity = '0.5';
+        fetchBtn.style.cursor = 'not-allowed';
+
+        let currentDoc = document;
+        let pageCount = 1;
+
+        while (true) {
+            // Find the HTMX button on the document we are currently parsing
+            const nextBtn = currentDoc.querySelector('button[hx-get*="sections/chat?page="]');
+            if (!nextBtn) break;
+
+            const nextUrl = nextBtn.getAttribute('hx-get');
+            pageCount++;
+            fetchBtn.textContent = `FETCHING P${pageCount}...`;
+
+            try {
+                // Politeness delay to avoid hitting rate limits
+                await new Promise(r => setTimeout(r, 250));
+                
+                const response = await fetch(nextUrl);
+                const html = await response.text();
+                
+                const parser = new DOMParser();
+                currentDoc = parser.parseFromString(html, 'text/html');
+
+                const newContainer = currentDoc.querySelector('.overflow-y-auto');
+                if (newContainer) {
+                    // Extract all new match sections and seamlessly inject them into our live view
+                    const sections = newContainer.querySelectorAll('section');
+                    sections.forEach(sec => targetContainer.appendChild(sec));
+                }
+            } catch (err) {
+                console.error("CSTI: Failed to fetch pagination.", err);
+                break;
+            }
+        }
+
+        // Clean up: Remove the original pagination nav block so the user can't click it anymore
+        const liveNav = document.querySelector('#player-chat-section nav');
+        if (liveNav) liveNav.remove();
+
+        fetchBtn.textContent = 'ALL PAGES LOADED';
+        fetchBtn.style.opacity = '1';
+        fetchBtn.style.background = 'rgba(16, 185, 129, 0.2)'; // Emerald solid
+        
+        // Re-inject copy buttons for all newly downloaded messages
+        injectQuickCopyButtons();
+        
+        // Re-run the active search query on the newly populated DOM
+        const input = document.getElementById('csti-search-input');
+        const regexCheck = document.getElementById('csti-use-regex');
+        const filterCheck = document.getElementById('csti-filter-only');
+        performSearch(input.value, regexCheck.checked, filterCheck.checked);
+        
+        isFetching = false;
+    }
+
     function attachEventListeners() {
         const input = document.getElementById('csti-search-input');
         const regexCheck = document.getElementById('csti-use-regex');
         const filterCheck = document.getElementById('csti-filter-only');
         const presets = document.getElementById('csti-presets');
+        const fetchBtn = document.getElementById('csti-btn-fetchall');
         
         const triggerSearch = () => performSearch(input.value, regexCheck.checked, filterCheck.checked);
 
@@ -310,6 +377,12 @@
                 triggerSearch();
             }
         });
+
+        if (fetchBtn) {
+            fetchBtn.addEventListener('click', fetchAllPages);
+            fetchBtn.onmouseover = () => { if(!isFetching) fetchBtn.style.background = 'rgba(16, 185, 129, 0.2)'; };
+            fetchBtn.onmouseout = () => { if(!isFetching) fetchBtn.style.background = 'rgba(16, 185, 129, 0.1)'; };
+        }
 
         const btnPrev = document.getElementById('csti-btn-prev');
         const btnNext = document.getElementById('csti-btn-next');
@@ -408,7 +481,6 @@
     }
 
     function performSearch(query, useRegex, filterOnly) {
-        // v1.1 fix: Scope the query to the new section ID
         const chatContainer = document.querySelector('#player-chat-section .overflow-y-auto');
         const statsDiv = document.getElementById('csti-stats');
         const navBtns = document.getElementById('csti-nav-btns');
@@ -431,12 +503,10 @@
         }
 
         sections.forEach(section => {
-            // v1.1 fix: Use 'a.grid' instead of 'a.group'
             const messages = section.querySelectorAll('a.grid');
             let sectionHasMatch = false;
 
             messages.forEach(msg => {
-                // v1.1 fix: Look for any element with the pre-wrap class (span instead of div)
                 const textDiv = msg.querySelector('.whitespace-pre-wrap');
                 if (!textDiv) return;
 
@@ -507,7 +577,6 @@
         let mapName = "Unknown";
         let dateStr = "Unknown Date";
 
-        // v1.1 fix: Use the text color class since .truncate was removed
         const mapEl = section.querySelector('.font-medium.text-cyan-200');
         if (mapEl) mapName = mapEl.textContent.trim();
         
@@ -518,11 +587,9 @@
         }
 
         let messages = [];
-        // v1.1 fix: Use 'a.grid' instead of 'a.group'
         section.querySelectorAll('a.grid').forEach(msg => {
             if (onlyVisible && msg.style.display === 'none') return;
 
-            // v1.1 fix: Scope directly to whitespace-pre-wrap
             const textDiv = msg.querySelector('.whitespace-pre-wrap');
             const rawText = textDiv ? (textDiv.dataset.originalText || textDiv.textContent).trim() : "";
             
@@ -568,7 +635,7 @@
 
     async function copySingleMessage(section, msg) {
         const sData = extractSectionData(section, false);
-        const textDiv = msg.querySelector('.whitespace-pre-wrap'); // v1.1 fix
+        const textDiv = msg.querySelector('.whitespace-pre-wrap');
         const rawText = textDiv ? (textDiv.dataset.originalText || textDiv.textContent).trim() : "";
         
         let roundStr = "-", timeStr = "-";
@@ -596,7 +663,7 @@
     }
 
     function generateExport(format) {
-        const chatContainer = document.querySelector('#player-chat-section .overflow-y-auto'); // v1.1 fix
+        const chatContainer = document.querySelector('#player-chat-section .overflow-y-auto');
         if (!chatContainer) return alert('No chat data found.');
 
         let sessions = [];
@@ -605,7 +672,7 @@
 
             const sData = extractSectionData(section, false);
             const filteredMsgs = sData.messages.filter((m, idx) => {
-                const msgEl = section.querySelectorAll('a.grid')[idx]; // v1.1 fix
+                const msgEl = section.querySelectorAll('a.grid')[idx]; 
                 return exportConfig.scope !== 'messages' || (msgEl && msgEl.dataset.cstiMatch === 'true');
             });
 
