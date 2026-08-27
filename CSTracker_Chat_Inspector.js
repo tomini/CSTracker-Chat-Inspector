@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CSTracker Chat Inspector
 // @namespace    https://github.com/tomini
-// @version      1.1.3
+// @version      1.1.4
 // @description  Tactical search, regex, copying, and exporting for CSTracker.gg chat logs.
 // @author       Tomini
 // @match        *://cstracker.gg/*
@@ -257,7 +257,7 @@
                 headerDiv.appendChild(copyBtn);
             }
 
-            section.querySelectorAll('a.grid').forEach(msg => {
+            section.querySelectorAll('.divide-y > div.grid').forEach(msg => {
                 if (!msg.querySelector('.csti-msg-copy-btn')) {
                     msg.style.position = 'relative';
 
@@ -267,7 +267,7 @@
                     rowCopy.textContent = 'COPY';
                     
                     rowCopy.style.cssText = `
-                        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+                        position: absolute; right: 48px; top: 50%; transform: translateY(-50%);
                         background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.4); 
                         color: #e0f2fe; font-family: ${monoFont}; font-size: 9px; font-weight: 600; 
                         text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; padding: 4px 10px; 
@@ -306,7 +306,6 @@
         let pageCount = 1;
 
         while (true) {
-            // v1.1.3 Hotfix: Safely isolate the "older" button to prevent infinite ping-ponging on "newer"
             const navButtons = Array.from(currentDoc.querySelectorAll('button[hx-get*="sections/chat?page="]'));
             const nextBtn = navButtons.find(btn => btn.textContent.toLowerCase().includes('older'));
             
@@ -499,7 +498,7 @@
         }
 
         sections.forEach(section => {
-            const messages = section.querySelectorAll('a.grid');
+            const messages = section.querySelectorAll('.divide-y > div.grid');
             let sectionHasMatch = false;
 
             messages.forEach(msg => {
@@ -583,7 +582,7 @@
         }
 
         let messages = [];
-        section.querySelectorAll('a.grid').forEach(msg => {
+        section.querySelectorAll('.divide-y > div.grid').forEach(msg => {
             if (onlyVisible && msg.style.display === 'none') return;
 
             const textDiv = msg.querySelector('.whitespace-pre-wrap');
@@ -668,7 +667,7 @@
 
             const sData = extractSectionData(section, false);
             const filteredMsgs = sData.messages.filter((m, idx) => {
-                const msgEl = section.querySelectorAll('a.grid')[idx]; 
+                const msgEl = section.querySelectorAll('.divide-y > div.grid')[idx]; 
                 return exportConfig.scope !== 'messages' || (msgEl && msgEl.dataset.cstiMatch === 'true');
             });
 
