@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CSTracker Chat Inspector
-// @namespace    http://tampermonkey.net/
-// @version      1.0
+// @namespace    https://github.com/tomini
+// @version      1.1
 // @description  Tactical search, regex, copying, and exporting for CSTracker.gg chat logs.
 // @author       Tomini
 // @match        *://cstracker.gg/*
@@ -18,7 +18,7 @@
 (function() {
     'use strict';
 
-    const DEFAULT_SHOW_BUTTON = true;
+    const DEFAULT_SHOW_BUTTON = true; 
     let showScrollBtn = GM_getValue('csti_show_scroll_btn', DEFAULT_SHOW_BUTTON);
     const monoFont = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 
@@ -35,37 +35,32 @@
 
     let customPresets = JSON.parse(localStorage.getItem('cstracker_custom_presets')) || {};
     let allPresets = { ...defaultPresets, ...customPresets };
-
-    let exportConfig = JSON.parse(localStorage.getItem('csti_export_config')) || {
-        scope: 'messages',
+    
+    let exportConfig = JSON.parse(localStorage.getItem('csti_export_config')) || { 
+        scope: 'messages', 
         groupByMatch: true,
         copyFormat: 'txt',
-        date: true,
-        map: true,
-        round: true,
-        time: true
+        date: true, 
+        map: true, 
+        round: true, 
+        time: true 
     };
-
+    
     if (exportConfig.copyFormat === 'png') exportConfig.copyFormat = 'txt';
 
-    // Global variables for match navigation
     let matchedNodes = [];
     let currentMatchIdx = -1;
 
     GM_registerMenuCommand(`Toggle "Jump to Chat" Button`, () => {
         showScrollBtn = !showScrollBtn;
         GM_setValue('csti_show_scroll_btn', showScrollBtn);
-        manageScrollButton();
+        manageScrollButton(); 
     });
 
     function findChatHeader() {
-        const headers = document.querySelectorAll('h2');
-        for (let h of headers) {
-            if (h.textContent.trim() === 'Chat history') {
-                return h.closest('header');
-            }
-        }
-        return null;
+        // v1.1 fix: Use the new dedicated section ID
+        const section = document.getElementById('player-chat-section');
+        return section ? section.querySelector('header') : null;
     }
 
     function manageScrollButton() {
@@ -79,16 +74,16 @@
                 btn.id = btnId;
                 btn.textContent = 'JUMP TO CHAT';
                 btn.style.cssText = `
-                    position: fixed; top: 100px; right: 24px; z-index: 99999;
-                    background-color: rgba(56, 189, 248, 0.1); color: #e0f2fe;
-                    padding: 12px 24px; font-family: ${monoFont}; font-size: 12px;
+                    position: fixed; top: 100px; right: 24px; z-index: 99999; 
+                    background-color: rgba(56, 189, 248, 0.1); color: #e0f2fe; 
+                    padding: 12px 24px; font-family: ${monoFont}; font-size: 12px; 
                     font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;
-                    border: 1px solid rgba(56, 189, 248, 0.5); cursor: pointer;
+                    border: 1px solid rgba(56, 189, 248, 0.5); cursor: pointer; 
                     transition: all 0.2s; backdrop-filter: blur(4px);
                 `;
                 btn.onmouseover = () => { btn.style.backgroundColor = 'rgba(56, 189, 248, 0.2)'; btn.style.borderColor = 'rgba(56, 189, 248, 0.8)'; };
                 btn.onmouseout = () => { btn.style.backgroundColor = 'rgba(56, 189, 248, 0.1)'; btn.style.borderColor = 'rgba(56, 189, 248, 0.5)'; };
-
+                
                 btn.onclick = () => {
                     const header = findChatHeader();
                     if (header) {
@@ -98,7 +93,7 @@
                         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                     }
                 };
-
+                
                 document.body.appendChild(btn);
             }
         } else {
@@ -114,8 +109,8 @@
             toast.style.cssText = `
                 position: fixed; bottom: 30px; right: 30px; z-index: 100000;
                 background-color: rgba(15, 23, 42, 0.95); color: #e0f2fe; border: 1px solid rgba(56, 189, 248, 0.5);
-                padding: 10px 18px; font-family: ${monoFont}; font-size: 10px; text-transform: uppercase;
-                letter-spacing: 0.12em; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5);
+                padding: 10px 18px; font-family: ${monoFont}; font-size: 10px; text-transform: uppercase; 
+                letter-spacing: 0.12em; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); 
                 transition: opacity 0.3s; pointer-events: none; backdrop-filter: blur(4px);
             `;
             document.body.appendChild(toast);
@@ -141,8 +136,8 @@
     function buildUI(headerElement) {
         const panel = document.createElement('div');
         panel.id = 'csti-panel';
-        panel.style.cssText = 'background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(30, 41, 59, 0.8); color: #f1f5f9; padding: 16px; margin-top: 16px; font-size: 14px;';
-
+        panel.style.cssText = 'background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(30, 41, 59, 0.8); color: #f1f5f9; padding: 16px; margin-top: 16px; margin-bottom: 16px; font-size: 14px;';
+        
         panel.innerHTML = `
             <div style="margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3em; color: #64748b; font-family: ${monoFont};">
                 <span style="color: rgba(251, 191, 36, 0.8);">// chat · inspector</span>
@@ -151,7 +146,7 @@
 
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <input type="text" id="csti-search-input" placeholder="Search chat..." style="flex: 1; min-width: 150px; background-color: rgba(2, 6, 23, 0.5); border: 1px solid rgba(30, 41, 59, 0.8); color: #f8fafc; padding: 6px 12px; outline: none; border-radius: 0;">
-
+                
                 <select id="csti-presets" style="background-color: rgba(2, 6, 23, 0.5); border: 1px solid rgba(30, 41, 59, 0.8); color: #f8fafc; padding: 6px 10px; outline: none; max-width: 180px; border-radius: 0;">
                     <option value="" style="background-color: #0f172a; color: #f8fafc;">-- Load Preset --</option>
                 </select>
@@ -163,7 +158,7 @@
                         <button id="csti-btn-next" title="Next Match" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 3px 6px; cursor: pointer; font-size: 10px; line-height: 1; transition: 0.2s;">▼</button>
                     </div>
                 </div>
-
+                
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; margin-left: auto; font-family: ${monoFont}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8;">
                     <input type="checkbox" id="csti-use-regex" style="accent-color: #38bdf8;"> Regex
                 </label>
@@ -173,14 +168,14 @@
 
                 <button id="csti-btn-save" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.5); color: #e0f2fe; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Save</button>
                 <button id="csti-btn-clear" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); color: #cbd5e1; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Clear</button>
-
+                
                 <div style="position: relative;">
                     <button id="csti-btn-export-toggle" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); color: #cbd5e1; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;">
                         Export ⏷
                     </button>
-
+                    
                     <div id="csti-export-menu" style="display: none; position: absolute; right: 0; margin-top: 8px; width: 300px; background-color: #0f172a; border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7); z-index: 1000; padding: 14px; font-size: 13px;">
-
+                        
                         <div style="font-family: ${monoFont}; font-size: 9px; text-transform: uppercase; letter-spacing: 0.22em; color: #64748b; margin-bottom: 6px;">Search Scope</div>
                         <select id="csti-exp-scope" style="width: 100%; background-color: rgba(2, 6, 23, 0.5); border: 1px solid rgba(30, 41, 59, 0.8); color: #f8fafc; padding: 6px; border-radius: 0; margin-bottom: 12px; outline: none;">
                             <option value="all" ${exportConfig.scope === 'all' ? 'selected' : ''} style="background-color: #0f172a;">All Messages</option>
@@ -217,7 +212,7 @@
                 </div>
             </div>
         `;
-
+        
         headerElement.insertAdjacentElement('afterend', panel);
         updatePresetDropdown();
         attachEventListeners();
@@ -237,7 +232,7 @@
     }
 
     function injectQuickCopyButtons() {
-        const chatContainer = document.querySelector('.overflow-y-auto.space-y-3');
+        const chatContainer = document.querySelector('#player-chat-section .overflow-y-auto');
         if (!chatContainer) return;
 
         chatContainer.querySelectorAll('section').forEach(section => {
@@ -247,8 +242,8 @@
                 copyBtn.className = 'csti-session-copy-btn';
                 copyBtn.textContent = 'COPY MATCH';
                 copyBtn.style.cssText = `
-                    margin-left: 12px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8);
-                    color: #94a3b8; font-family: ${monoFont}; font-size: 9px; font-weight: 600;
+                    margin-left: 12px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); 
+                    color: #94a3b8; font-family: ${monoFont}; font-size: 9px; font-weight: 600; 
                     text-transform: uppercase; letter-spacing: 0.12em; padding: 3px 8px; cursor: pointer; transition: all 0.2s;
                 `;
                 copyBtn.onmouseover = () => { copyBtn.style.color = '#e0f2fe'; copyBtn.style.borderColor = 'rgba(56, 189, 248, 0.5)'; copyBtn.style.background = 'rgba(56, 189, 248, 0.1)'; };
@@ -261,7 +256,8 @@
                 headerDiv.appendChild(copyBtn);
             }
 
-            section.querySelectorAll('a.group').forEach(msg => {
+            // v1.1 fix: Use 'a.grid' instead of 'a.group'
+            section.querySelectorAll('a.grid').forEach(msg => {
                 if (!msg.querySelector('.csti-msg-copy-btn')) {
                     msg.style.position = 'relative';
 
@@ -269,15 +265,15 @@
                     rowCopy.className = 'csti-msg-copy-btn';
                     rowCopy.title = 'Copy message';
                     rowCopy.textContent = 'COPY';
-
+                    
                     rowCopy.style.cssText = `
                         position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-                        background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.4);
-                        color: #e0f2fe; font-family: ${monoFont}; font-size: 9px; font-weight: 600;
-                        text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; padding: 4px 10px;
+                        background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.4); 
+                        color: #e0f2fe; font-family: ${monoFont}; font-size: 9px; font-weight: 600; 
+                        text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; padding: 4px 10px; 
                         opacity: 0; transition: opacity 0.2s, background 0.2s; z-index: 10;
                     `;
-
+                    
                     rowCopy.onmouseover = () => { rowCopy.style.background = 'rgba(56, 189, 248, 0.2)'; };
                     rowCopy.onmouseout = () => { rowCopy.style.background = 'rgba(15, 23, 42, 0.95)'; };
                     rowCopy.onclick = (e) => {
@@ -300,7 +296,7 @@
         const regexCheck = document.getElementById('csti-use-regex');
         const filterCheck = document.getElementById('csti-filter-only');
         const presets = document.getElementById('csti-presets');
-
+        
         const triggerSearch = () => performSearch(input.value, regexCheck.checked, filterCheck.checked);
 
         input.addEventListener('input', triggerSearch);
@@ -315,10 +311,9 @@
             }
         });
 
-        // Navigation Buttons
         const btnPrev = document.getElementById('csti-btn-prev');
         const btnNext = document.getElementById('csti-btn-next');
-
+        
         const styleNavHover = (btn) => {
             btn.onmouseover = () => { btn.style.background = 'rgba(56, 189, 248, 0.2)'; };
             btn.onmouseout = () => { btn.style.background = 'rgba(15, 23, 42, 0.8)'; };
@@ -349,7 +344,7 @@
 
         const exportMenu = document.getElementById('csti-export-menu');
         const exportToggle = document.getElementById('csti-btn-export-toggle');
-
+        
         exportToggle.onmouseover = () => { exportToggle.style.color = '#e0f2fe'; exportToggle.style.borderColor = 'rgba(56, 189, 248, 0.5)'; };
         exportToggle.onmouseout = () => { exportToggle.style.color = '#cbd5e1'; exportToggle.style.borderColor = 'rgba(30, 41, 59, 0.8)'; };
 
@@ -394,7 +389,7 @@
 
     function navigateMatches(direction) {
         if (matchedNodes.length === 0) return;
-
+        
         currentMatchIdx += direction;
         if (currentMatchIdx < 0) currentMatchIdx = matchedNodes.length - 1;
         if (currentMatchIdx >= matchedNodes.length) currentMatchIdx = 0;
@@ -402,11 +397,10 @@
         const targetElement = matchedNodes[currentMatchIdx];
         targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-        // Subtle visual flash to guide the eye
         const originalBg = targetElement.style.backgroundColor;
         targetElement.style.transition = 'background-color 0.3s';
-        targetElement.style.backgroundColor = 'rgba(56, 189, 248, 0.25)'; // Sky blue pulse
-
+        targetElement.style.backgroundColor = 'rgba(56, 189, 248, 0.25)'; 
+        
         setTimeout(() => {
             targetElement.style.backgroundColor = originalBg;
             setTimeout(() => { targetElement.style.transition = ''; }, 300);
@@ -414,16 +408,17 @@
     }
 
     function performSearch(query, useRegex, filterOnly) {
-        const chatContainer = document.querySelector('.overflow-y-auto.space-y-3');
+        // v1.1 fix: Scope the query to the new section ID
+        const chatContainer = document.querySelector('#player-chat-section .overflow-y-auto');
         const statsDiv = document.getElementById('csti-stats');
         const navBtns = document.getElementById('csti-nav-btns');
-
+        
         if (!chatContainer) return;
 
         const sections = chatContainer.querySelectorAll('section');
         let searchRegex;
         let totalMsgs = 0;
-
+        
         matchedNodes = [];
         currentMatchIdx = -1;
 
@@ -436,11 +431,13 @@
         }
 
         sections.forEach(section => {
-            const messages = section.querySelectorAll('a.group');
+            // v1.1 fix: Use 'a.grid' instead of 'a.group'
+            const messages = section.querySelectorAll('a.grid');
             let sectionHasMatch = false;
 
             messages.forEach(msg => {
-                const textDiv = msg.querySelector('div.whitespace-pre-wrap');
+                // v1.1 fix: Look for any element with the pre-wrap class (span instead of div)
+                const textDiv = msg.querySelector('.whitespace-pre-wrap');
                 if (!textDiv) return;
 
                 totalMsgs++;
@@ -452,8 +449,8 @@
                 }
                 msg.style.display = '';
 
-                let isMatch = true;
-
+                let isMatch = true; 
+                
                 if (query) {
                     const text = textDiv.dataset.originalText;
                     if (useRegex && searchRegex) {
@@ -492,7 +489,6 @@
             }
         });
 
-        // Update Statistics & Nav UI
         if (statsDiv) {
             if (!query) {
                 statsDiv.innerHTML = '';
@@ -501,8 +497,7 @@
                 const matchedCount = matchedNodes.length;
                 const percent = totalMsgs > 0 ? ((matchedCount / totalMsgs) * 100).toFixed(1) : 0;
                 statsDiv.innerHTML = `<span style="color: #f8fafc;">${matchedCount}</span> / ${totalMsgs} <span style="color: #64748b; font-weight: normal;">(${percent}%)</span>`;
-
-                // Show navigation buttons only if we have active matches
+                
                 if (navBtns) navBtns.style.display = matchedCount > 0 ? 'flex' : 'none';
             }
         }
@@ -512,9 +507,10 @@
         let mapName = "Unknown";
         let dateStr = "Unknown Date";
 
-        const mapEl = section.querySelector('.truncate');
+        // v1.1 fix: Use the text color class since .truncate was removed
+        const mapEl = section.querySelector('.font-medium.text-cyan-200');
         if (mapEl) mapName = mapEl.textContent.trim();
-
+        
         const dateEl = section.querySelector('[data-time-ago]');
         if (dateEl) {
             const title = dateEl.getAttribute('title');
@@ -522,15 +518,17 @@
         }
 
         let messages = [];
-        section.querySelectorAll('a.group').forEach(msg => {
+        // v1.1 fix: Use 'a.grid' instead of 'a.group'
+        section.querySelectorAll('a.grid').forEach(msg => {
             if (onlyVisible && msg.style.display === 'none') return;
 
-            const textDiv = msg.querySelector('div.whitespace-pre-wrap');
+            // v1.1 fix: Scope directly to whitespace-pre-wrap
+            const textDiv = msg.querySelector('.whitespace-pre-wrap');
             const rawText = textDiv ? (textDiv.dataset.originalText || textDiv.textContent).trim() : "";
-
+            
             let roundStr = "-";
             let timeStr = "-";
-
+            
             const metaDiv = msg.querySelector('.text-xs.text-slate-500');
             if (metaDiv) {
                 const parts = metaDiv.textContent.split('·');
@@ -570,9 +568,9 @@
 
     async function copySingleMessage(section, msg) {
         const sData = extractSectionData(section, false);
-        const textDiv = msg.querySelector('div.whitespace-pre-wrap');
+        const textDiv = msg.querySelector('.whitespace-pre-wrap'); // v1.1 fix
         const rawText = textDiv ? (textDiv.dataset.originalText || textDiv.textContent).trim() : "";
-
+        
         let roundStr = "-", timeStr = "-";
         const metaDiv = msg.querySelector('.text-xs.text-slate-500');
         if (metaDiv) {
@@ -598,7 +596,7 @@
     }
 
     function generateExport(format) {
-        const chatContainer = document.querySelector('.overflow-y-auto.space-y-3');
+        const chatContainer = document.querySelector('#player-chat-section .overflow-y-auto'); // v1.1 fix
         if (!chatContainer) return alert('No chat data found.');
 
         let sessions = [];
@@ -607,7 +605,7 @@
 
             const sData = extractSectionData(section, false);
             const filteredMsgs = sData.messages.filter((m, idx) => {
-                const msgEl = section.querySelectorAll('a.group')[idx];
+                const msgEl = section.querySelectorAll('a.grid')[idx]; // v1.1 fix
                 return exportConfig.scope !== 'messages' || (msgEl && msgEl.dataset.cstiMatch === 'true');
             });
 
@@ -639,7 +637,7 @@
                     });
                 });
             }
-        }
+        } 
         else if (format === 'md') {
             if (exportConfig.groupByMatch) {
                 sessions.forEach(s => {
