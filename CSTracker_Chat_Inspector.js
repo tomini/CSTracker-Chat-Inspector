@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         CSTracker Chat Inspector
 // @namespace    https://github.com/tomini
-// @version      1.1
+// @version      1.1.1
 // @description  Tactical search, regex, copying, and exporting for CSTracker.gg chat logs.
 // @author       Tomini
 // @match        *://cstracker.gg/*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=cstracker.gg
+// @icon         https://cstracker.gg/favicon.svg
 // @license      none
 // @downloadURL  https://raw.githubusercontent.com/tomini/CSTracker-Chat-Inspector/main/CSTracker_Chat_Inspector.js
 // @updateURL    https://raw.githubusercontent.com/tomini/CSTracker-Chat-Inspector/main/CSTracker_Chat_Inspector.js
@@ -25,8 +25,8 @@
     const defaultPresets = {
         "N-word": "\\b(nigg[ea]r?s?)\\b",
         "Slurs & Hate Speech": "\\b(nigg[ea]r?s?|fag(got)?s?|retard(ed)?|kys)\\b",
-        "General Toxicity": "\\b(trash|dogshit|cunt|bitch|whore|stfu|idiot|debile|honis)\\b",
-        "Hack Accusations": "\\b(aimbot|wallhacks?|wh|cheats?|hacks?|toggled?)\\b",
+        "General Toxicity": "\\b(trash|dogshit|cunt|bitch|whore|stfu|idiot)\\b",
+        "Hack Accusations": "\\b(aimbots?|wallhack(er|ing)?s*|wh|cheat(er|ing)?s*|hack(er|ing)?s*|toggled?)\\b",
         "Links/IPs": "(https?:\\/\\/\\S+|\\b([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}\\b|\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b)",
         "Excuses & Salt": "\\b(lag(ging)?|lucky?|subtick|rng|bs|bullshit|mad|cry(ing)?)\\b",
         "Classic BM": "\\b((ur|your) (mom|mum)|gg\\s*ez|ez\\s*gg|ez|who asked|tutorial|bot|uninstall)\\b",
