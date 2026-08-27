@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CSTracker Chat Inspector
 // @namespace    https://github.com/tomini
-// @version      1.1.2
+// @version      1.1.3
 // @description  Tactical search, regex, copying, and exporting for CSTracker.gg chat logs.
 // @author       Tomini
 // @match        *://cstracker.gg/*
@@ -214,7 +214,6 @@
             </div>
         `;
         
-        // v1.1.2 Fix: Insert the panel BEFORE the HTMX swapping zone so it survives pagination clicks
         chatSection.insertAdjacentElement('beforebegin', panel);
         updatePresetDropdown();
         attachEventListeners();
@@ -307,8 +306,10 @@
         let pageCount = 1;
 
         while (true) {
-            // Find the HTMX button on the document we are currently parsing
-            const nextBtn = currentDoc.querySelector('button[hx-get*="sections/chat?page="]');
+            // v1.1.3 Hotfix: Safely isolate the "older" button to prevent infinite ping-ponging on "newer"
+            const navButtons = Array.from(currentDoc.querySelectorAll('button[hx-get*="sections/chat?page="]'));
+            const nextBtn = navButtons.find(btn => btn.textContent.toLowerCase().includes('older'));
+            
             if (!nextBtn) break;
 
             const nextUrl = nextBtn.getAttribute('hx-get');
@@ -316,7 +317,6 @@
             fetchBtn.textContent = `FETCHING P${pageCount}...`;
 
             try {
-                // Politeness delay to avoid hitting rate limits
                 await new Promise(r => setTimeout(r, 250));
                 
                 const response = await fetch(nextUrl);
@@ -327,7 +327,6 @@
 
                 const newContainer = currentDoc.querySelector('.overflow-y-auto');
                 if (newContainer) {
-                    // Extract all new match sections and seamlessly inject them into our live view
                     const sections = newContainer.querySelectorAll('section');
                     sections.forEach(sec => targetContainer.appendChild(sec));
                 }
@@ -337,18 +336,15 @@
             }
         }
 
-        // Clean up: Remove the original pagination nav block so the user can't click it anymore
         const liveNav = document.querySelector('#player-chat-section nav');
         if (liveNav) liveNav.remove();
 
         fetchBtn.textContent = 'ALL PAGES LOADED';
         fetchBtn.style.opacity = '1';
-        fetchBtn.style.background = 'rgba(16, 185, 129, 0.2)'; // Emerald solid
+        fetchBtn.style.background = 'rgba(16, 185, 129, 0.2)';
         
-        // Re-inject copy buttons for all newly downloaded messages
         injectQuickCopyButtons();
         
-        // Re-run the active search query on the newly populated DOM
         const input = document.getElementById('csti-search-input');
         const regexCheck = document.getElementById('csti-use-regex');
         const filterCheck = document.getElementById('csti-filter-only');
