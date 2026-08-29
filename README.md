@@ -22,6 +22,7 @@ This Tampermonkey script adds a chat analysis panel to CSTracker.gg player profi
 * **Navigation shortcut:** A "JUMP TO CHAT" button bypasses profile statistics. Users can disable this in the Tampermonkey extension menu.
 * **Query statistics:** A counter displays the raw number of matching messages and the percentage they represent against the user's total chat history.
 * **Navigation controls:** Up and down arrow buttons appear next to the match counter once a query executes. Clicking these buttons shifts the viewport directly to the previous or next matching message in the log history.
+* **Dynamic pagination bypass:** If CSTracker is actively paginating chat history, a "FETCH ALL PAGES" button will appear. Clicking it sequentially requests and injects all older chat history pages into the current view, allowing users to search and export a player's complete chat record in one pass. If the site is not paginating, the button intelligently hides itself.
 * **UI integration:** The script uses CSTracker.gg's native CSS classes to render the control panel in the existing dark layout.
 
 ### Default and custom search presets
@@ -42,7 +43,7 @@ Users can type a custom query and click **Save Preset**. The script stores this 
 
 The script executes entirely client-side.
 
-* It makes zero external API calls.
+* It makes zero third-party API calls (pagination fetching relies solely on native CSTracker endpoints).
 * It fetches no external JavaScript libraries.
 * It writes custom presets and export configurations directly to `localStorage`.
 

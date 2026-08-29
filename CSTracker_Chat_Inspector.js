@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CSTracker Chat Inspector
 // @namespace    https://github.com/tomini
-// @version      1.1.4
+// @version      1.1.5
 // @description  Tactical search, regex, copying, and exporting for CSTracker.gg chat logs.
 // @author       Tomini
 // @match        *://cstracker.gg/*
@@ -138,6 +138,9 @@
         panel.id = 'csti-panel';
         panel.style.cssText = 'background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(30, 41, 59, 0.8); color: #f1f5f9; padding: 16px; margin-top: 24px; margin-bottom: 24px; font-size: 14px;';
         
+        const hasPagination = chatSection.querySelector('button[hx-get*="sections/chat?page="]');
+        const fetchAllBtnHTML = hasPagination ? `<button id="csti-btn-fetchall" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.5); color: #a7f3d0; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Fetch All Pages</button>` : '';
+
         panel.innerHTML = `
             <div style="margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3em; color: #64748b; font-family: ${monoFont};">
                 <span style="color: rgba(251, 191, 36, 0.8);">// chat · inspector</span>
@@ -168,7 +171,7 @@
 
                 <button id="csti-btn-save" style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.5); color: #e0f2fe; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Save</button>
                 <button id="csti-btn-clear" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); color: #cbd5e1; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Clear</button>
-                <button id="csti-btn-fetchall" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.5); color: #a7f3d0; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s;">Fetch All Pages</button>
+                ${fetchAllBtnHTML}
                 
                 <div style="position: relative;">
                     <button id="csti-btn-export-toggle" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(30, 41, 59, 0.8); color: #cbd5e1; padding: 6px 14px; font-family: ${monoFont}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;">
